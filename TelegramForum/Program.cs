@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
@@ -21,36 +21,41 @@ if (!File.Exists("config.json"))
 {
     File.WriteAllText("config.json", JsonSerializer.Serialize(config));
 }
-config = JsonSerializer.Deserialize<Config>("config.json");
+config = JsonSerializer.Deserialize<Config>(File.ReadAllText("config.json"));
 
 Dictionary<int, Datum> data = new();
 if (!File.Exists("data.json"))
 {
     File.WriteAllText("data.json", JsonSerializer.Serialize(data));
 }
-data = JsonSerializer.Deserialize<Dictionary<int, Datum>>("data.json");
+data = JsonSerializer.Deserialize<Dictionary<int, Datum>>(File.ReadAllText("data.json"));
 
-TelegramBotClient botClient = new(config.Token, string.IsNullOrWhiteSpace(config.Proxy) ? new(new HttpClientHandler()
+TelegramBotClient botClient = new(config.Token, string.IsNullOrWhiteSpace(config.Proxy) ? default : new(new HttpClientHandler()
 {
     Proxy = new WebProxy(config.Proxy)
-}) : default);
+}));
 botClient.StartReceiving((_, update, _) =>
 {
     if (update.Type is not UpdateType.Message)
     {
         return;
     }
-    Message forwardMessage = botClient.ForwardMessageAsync(config.ChatId, update.Message.SenderChat.Id, update.Message.MessageId).Result;
+    if (update.Message.Type is MessageType.Text && update.Message.Text is "/start")
+    {
+        return;
+    }
+    Message forwardMessage = botClient.ForwardMessageAsync(config.ChatId, update.Message.From.Id, update.Message.MessageId).Result;
     data.Add(update.Message.MessageId, new()
     {
         MessageId = forwardMessage.MessageId,
-        UserId = update.Message.SenderChat.Id
+        UserId = update.Message.From.Id
     });
     File.WriteAllText("data.json", JsonSerializer.Serialize(data));
 }, (_, ex, _) =>
 {
-    logger.Error(ex);
+    logger.Error(ex.Message);
 });
+
 while (true)
 {
     _ = Console.Read();
