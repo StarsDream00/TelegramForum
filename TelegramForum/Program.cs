@@ -23,12 +23,12 @@ if (!File.Exists("config.json"))
 }
 config = JsonSerializer.Deserialize<Config>(File.ReadAllText("config.json"));
 
-Dictionary<int, Datum> data = new();
+Dictionary<long, Dictionary<int, int>> data = new();
 if (!File.Exists("data.json"))
 {
     File.WriteAllText("data.json", JsonSerializer.Serialize(data));
 }
-data = JsonSerializer.Deserialize<Dictionary<int, Datum>>(File.ReadAllText("data.json"));
+data = JsonSerializer.Deserialize<Dictionary<long, Dictionary<int, int>>>(File.ReadAllText("data.json"));
 
 TelegramBotClient botClient = new(config.Token, string.IsNullOrWhiteSpace(config.Proxy) ? default : new(new HttpClientHandler()
 {
@@ -36,21 +36,34 @@ TelegramBotClient botClient = new(config.Token, string.IsNullOrWhiteSpace(config
 }));
 botClient.StartReceiving((_, update, _) =>
 {
-    if (update.Type is not UpdateType.Message)
+    if (update.Type is not UpdateType.Message || update.Message.From.Id != update.Message.Chat.Id)
     {
         return;
     }
-    if (update.Message.Type is MessageType.Text && update.Message.Text is "/start")
+    if (update.Message.Type is MessageType.Text && update.Message.Text.StartsWith('/'))
     {
+        if (update.Message.Text is "/delete")
+        {
+            if (update.Message.ReplyToMessage is not null && data.ContainsKey(update.Message.From.Id) && data[update.Message.From.Id].ContainsKey(update.Message.ReplyToMessage.MessageId))
+            {
+                _ = botClient.DeleteMessageAsync(config.ChatId, data[update.Message.From.Id][update.Message.ReplyToMessage.MessageId]);
+                _ = data[update.Message.From.Id].Remove(update.Message.ReplyToMessage.MessageId);
+                File.WriteAllText("data.json", JsonSerializer.Serialize(data));
+                _ = botClient.SendTextMessageAsync(update.Message.From.Id, "帖子删除成功", default, default, default, default, default, update.Message.ReplyToMessage.MessageId);
+                return;
+            }
+            _ = botClient.SendTextMessageAsync(update.Message.From.Id, "帖子删除失败：指定帖子不存在", default, default, default, default, default, update.Message.MessageId);
+        }
         return;
     }
     Message forwardMessage = botClient.ForwardMessageAsync(config.ChatId, update.Message.From.Id, update.Message.MessageId).Result;
-    data.Add(update.Message.MessageId, new()
+    if (!data.ContainsKey(update.Message.From.Id))
     {
-        MessageId = forwardMessage.MessageId,
-        UserId = update.Message.From.Id
-    });
+        data.Add(update.Message.From.Id, new());
+    }
+    data[update.Message.From.Id].Add(forwardMessage.MessageId, update.Message.MessageId);
     File.WriteAllText("data.json", JsonSerializer.Serialize(data));
+    _ = botClient.SendTextMessageAsync(update.Message.From.Id, "帖子发送成功", default, default, default, default, default, update.Message.MessageId);
 }, (_, ex, _) =>
 {
     logger.Error(ex.Message);
