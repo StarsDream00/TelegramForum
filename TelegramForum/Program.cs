@@ -49,10 +49,10 @@ botClient.StartReceiving((_, update, _) =>
                 _ = botClient.DeleteMessageAsync(config.ChatId, data[update.Message.From.Id][update.Message.ReplyToMessage.MessageId]);
                 _ = data[update.Message.From.Id].Remove(update.Message.ReplyToMessage.MessageId);
                 File.WriteAllText("data.json", JsonSerializer.Serialize(data));
-                _ = botClient.SendTextMessageAsync(update.Message.From.Id, "Ìû×ÓÉ¾³ý³É¹¦", default, default, default, default, default, update.Message.ReplyToMessage.MessageId);
+                _ = botClient.SendTextMessageAsync(update.Message.From.Id, "å¸–å­åˆ é™¤æˆåŠŸ", default, default, default, default, default, update.Message.ReplyToMessage.MessageId);
                 return;
             }
-            _ = botClient.SendTextMessageAsync(update.Message.From.Id, "Ìû×ÓÉ¾³ýÊ§°Ü£ºÖ¸¶¨Ìû×Ó²»´æÔÚ", default, default, default, default, default, update.Message.MessageId);
+            _ = botClient.SendTextMessageAsync(update.Message.From.Id, "å¸–å­åˆ é™¤å¤±è´¥ï¼šå¸–å­ä¸å­˜åœ¨", default, default, default, default, default, update.Message.MessageId);
         }
         return;
     }
@@ -63,7 +63,7 @@ botClient.StartReceiving((_, update, _) =>
     }
     data[update.Message.From.Id].Add(forwardMessage.MessageId, update.Message.MessageId);
     File.WriteAllText("data.json", JsonSerializer.Serialize(data));
-    _ = botClient.SendTextMessageAsync(update.Message.From.Id, "Ìû×Ó·¢ËÍ³É¹¦", default, default, default, default, default, update.Message.MessageId);
+    _ = botClient.SendTextMessageAsync(update.Message.From.Id, "å¸–å­å‘å¸ƒæˆåŠŸ", default, default, default, default, default, update.Message.MessageId);
 }, (_, ex, _) =>
 {
     logger.Error(ex.Message);
