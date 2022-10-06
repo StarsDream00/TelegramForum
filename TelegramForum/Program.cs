@@ -46,7 +46,7 @@ botClient.StartReceiving((_, update, _) =>
         {
             if (update.Message.ReplyToMessage is not null && data.ContainsKey(update.Message.From.Id) && data[update.Message.From.Id].ContainsKey(update.Message.ReplyToMessage.MessageId))
             {
-                _ = botClient.DeleteMessageAsync(config.ChatId, data[update.Message.From.Id][update.Message.ReplyToMessage.MessageId]);
+                botClient.DeleteMessageAsync(config.ChatId, data[update.Message.From.Id][update.Message.ReplyToMessage.MessageId]).Wait();
                 _ = data[update.Message.From.Id].Remove(update.Message.ReplyToMessage.MessageId);
                 File.WriteAllText("data.json", JsonSerializer.Serialize(data));
                 _ = botClient.SendTextMessageAsync(update.Message.From.Id, "帖子删除成功", default, default, default, default, default, update.Message.ReplyToMessage.MessageId);
@@ -61,7 +61,7 @@ botClient.StartReceiving((_, update, _) =>
     {
         data.Add(update.Message.From.Id, new());
     }
-    data[update.Message.From.Id].Add(forwardMessage.MessageId, update.Message.MessageId);
+    data[update.Message.From.Id].Add(update.Message.MessageId, forwardMessage.MessageId);
     File.WriteAllText("data.json", JsonSerializer.Serialize(data));
     _ = botClient.SendTextMessageAsync(update.Message.From.Id, "帖子发布成功", default, default, default, default, default, update.Message.MessageId);
 }, (_, ex, _) =>

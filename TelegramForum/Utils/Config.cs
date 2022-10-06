@@ -1,4 +1,4 @@
-internal class Config
+internal struct Config
 {
     public string Token { get; set; }
     public long ChatId { get; set; }
