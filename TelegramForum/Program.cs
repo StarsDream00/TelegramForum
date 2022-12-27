@@ -1,9 +1,9 @@
+using NLog;
 using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
-using NLog;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -34,7 +34,7 @@ TelegramBotClient botClient = new(config.Token, string.IsNullOrWhiteSpace(config
 {
     Proxy = new WebProxy(config.Proxy)
 }));
-botClient.StartReceiving((_, update, _) =>
+botClient.StartReceiving(async (_, update, _) =>
 {
     if (update.Type is not UpdateType.Message || update.Message.From.Id != update.Message.Chat.Id)
     {
@@ -46,7 +46,7 @@ botClient.StartReceiving((_, update, _) =>
         {
             if (update.Message.ReplyToMessage is not null && data.ContainsKey(update.Message.From.Id) && data[update.Message.From.Id].ContainsKey(update.Message.ReplyToMessage.MessageId))
             {
-                botClient.DeleteMessageAsync(config.ChatId, data[update.Message.From.Id][update.Message.ReplyToMessage.MessageId]).Wait();
+                await botClient.DeleteMessageAsync(config.ChatId, data[update.Message.From.Id][update.Message.ReplyToMessage.MessageId]);
                 _ = data[update.Message.From.Id].Remove(update.Message.ReplyToMessage.MessageId);
                 File.WriteAllText("data.json", JsonSerializer.Serialize(data));
                 _ = botClient.SendTextMessageAsync(update.Message.From.Id, "帖子删除成功", default, default, default, default, default, update.Message.ReplyToMessage.MessageId);
@@ -56,7 +56,7 @@ botClient.StartReceiving((_, update, _) =>
         }
         return;
     }
-    Message forwardMessage = botClient.ForwardMessageAsync(config.ChatId, update.Message.From.Id, update.Message.MessageId).Result;
+    Message forwardMessage = await botClient.ForwardMessageAsync(config.ChatId, update.Message.From.Id, update.Message.MessageId);
     if (!data.ContainsKey(update.Message.From.Id))
     {
         data.Add(update.Message.From.Id, new());
